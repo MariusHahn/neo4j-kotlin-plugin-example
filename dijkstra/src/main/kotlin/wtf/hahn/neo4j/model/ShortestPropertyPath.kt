@@ -19,44 +19,26 @@ class ShortestPropertyPath(relationships: Iterator<Relationship>, propertyKey: S
         nodes = materializeNodes()
     }
 
-    override fun startNode(): Node {
-        return relationships.first().startNode
-    }
+    override fun startNode(): Node = relationships.first().startNode
 
-    override fun endNode(): Node {
-        return relationships[relationships.size - 1].endNode
-    }
+    override fun endNode(): Node = relationships[relationships.size - 1].endNode
 
-    override fun lastRelationship(): Relationship {
-        return relationships.last()
-    }
+    override fun lastRelationship(): Relationship = relationships.last()
 
-    override fun relationships(): Iterable<Relationship> {
-        return relationships
-    }
+    override fun relationships(): Iterable<Relationship> = relationships
 
-    override fun reverseRelationships(): Iterable<Relationship> {
-        return ReverseIterator(relationships)
-    }
+    override fun reverseRelationships(): Iterable<Relationship> = ReverseIterator(relationships)
 
-    override fun nodes(): Iterable<Node> {
-        return nodes
-    }
+    override fun nodes(): Iterable<Node> = nodes
 
-    override fun reverseNodes(): Iterable<Node> {
-        return ReverseIterator(nodes)
-    }
+    override fun reverseNodes(): Iterable<Node> = ReverseIterator(nodes)
 
-    override fun length(): Int {
-        return length
-    }
+    override fun length(): Int = length
 
-    override fun iterator(): MutableIterator<Entity> {
-        return ZipIterator(nodes, relationships)
-    }
+    override fun iterator(): MutableIterator<Entity> = ZipIterator(nodes, relationships)
 
     private fun materializeRelationships(relationships: Iterator<Relationship>): List<Relationship> {
-        val relationshipList: MutableList<Relationship> = mutableListOf()
+        val relationshipList = mutableListOf<Relationship>()
         relationships.forEach(relationshipList::add)
         return relationshipList
     }
@@ -64,7 +46,7 @@ class ShortestPropertyPath(relationships: Iterator<Relationship>, propertyKey: S
     private fun materializeNodes(): List<Node> {
         if (relationships.isEmpty()) return listOf()
         val nodes = mutableListOf<Node>()
-        nodes.add(relationships[0].startNode)
+        nodes.add(relationships.first().startNode)
         for (relationship in relationships) {
             nodes.add(relationship.endNode)
         }
@@ -72,10 +54,9 @@ class ShortestPropertyPath(relationships: Iterator<Relationship>, propertyKey: S
     }
 
     private fun materializeLength(propertyKey: String): Int {
-        return relationships.stream()
-            .map { relationship: Relationship -> relationship.getProperty(propertyKey) }
-            .map { cost: Any -> (cost as? Long)?.toString() ?: cost as String }
-            .mapToLong { s: String? -> java.lang.Long.valueOf(s) }
-            .sum().toInt()
+        return relationships
+            .map { it.getProperty(propertyKey) }
+            .map { cost -> (cost as? Long)?.toString() ?: cost as String }
+            .sumOf(String::toLong).toInt()
     }
 }

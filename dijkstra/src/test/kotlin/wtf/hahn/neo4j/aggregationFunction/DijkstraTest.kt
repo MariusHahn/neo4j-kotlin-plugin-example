@@ -1,16 +1,16 @@
 package wtf.hahn.neo4j.aggregationFunction
 
 import org.junit.Test
-import org.neo4j.driver.GraphDatabase
+import org.neo4j.driver.Driver
 import org.neo4j.driver.Session
 import wtf.hahn.neo4j.util.IntegrationTest
 
 class DijkstraTest : IntegrationTest(listOf(), listOf(), listOf(
-    DijkstraAlgorithm::class.java), Dataset.DIJKSTRA_SOURCE_TARGET_SAMPLE) {
+    Dijkstra::class.java), Dataset.DIJKSTRA_SOURCE_TARGET_SAMPLE) {
 
     @Test
     fun cypherTest() {
-        GraphDatabase.driver(uri, build).use { driver ->
+        driver().use { driver: Driver ->
             val session: Session = driver.session()
             val cypher = """MATCH 
                            (a:Location {name: 'A'}),
@@ -22,5 +22,4 @@ class DijkstraTest : IntegrationTest(listOf(), listOf(), listOf(
             result.single().fields().forEach(::println)
         }
     }
-
 }

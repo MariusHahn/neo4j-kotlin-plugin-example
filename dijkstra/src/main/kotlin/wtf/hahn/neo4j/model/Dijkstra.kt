@@ -1,49 +1,50 @@
-import org.apache.commons.lang3.tuple.MutablePair
+package wtf.hahn.neo4j.model
+
 import org.neo4j.graphdb.Relationship
 
 data class Info(val settled: Boolean, val distance: Long, val relationship: Relationship?)
 
-class DikstraHeap(private val heap: MutableMap<Long, Info> = mutableMapOf()) {
+class DijkstraHeap(private val heap: MutableMap<Long, Info> = mutableMapOf()) {
 
     fun setSettled(nodeId: Long) {
         if (!heap.containsKey(nodeId)) throw UnsupportedOperationException()
-        val info = heap[nodeId]
-        heap[nodeId] = Info(true, info!!.distance, info.relationship)
+        val info = info(nodeId)
+        heap[nodeId] = Info(true, info.distance, info.relationship)
     }
 
-    fun setNodeDistance(nodeId: Long, distance: Long, previous: Relationship?) {
+
+    fun setNodeDistance(nodeId: Long, distance: Long, previous: Relationship? = null) {
         heap[nodeId] = Info(false, distance, previous)
     }
 
-    fun isSettled(nodeId: Long): Boolean {
-        return heap[nodeId] != null && heap[nodeId]!!.settled
-    }
-
     fun getClosestNotSettled(): Long? {
-        val distanceNodeId = MutablePair<Long, Long?>(Long.MAX_VALUE, null)
-        heap.entries.stream()
-            .filter { (_, value): Map.Entry<Long, Info> -> !value!!.settled }
-            .forEach { (key, value): Map.Entry<Long, Info> ->
-                val distance = value!!.distance
-                if (distance < distanceNodeId.getLeft()) {
-                    distanceNodeId.setLeft(distance)
-                    distanceNodeId.setRight(key)
-                }
-            }
-        return distanceNodeId.getRight()
-    }
+        data class DistanceNodeId(val nodeId: Long? = null, val distance: Long = Long.MAX_VALUE)
 
-    fun getCurrentDistance(nodeId: Long): Long {
-        return heap[nodeId]!!.distance
+        var distanceNodeId = DistanceNodeId()
+        for ((nodeId, info) in heap) {
+            if (!(info.settled || info.distance >= distanceNodeId.distance)) {
+                distanceNodeId = DistanceNodeId(nodeId = nodeId, distance = info.distance)
+            }
+        }
+        return distanceNodeId.nodeId
     }
 
     fun getPath(endNodeId: Long): List<Relationship> {
-        val ids: MutableList<Relationship> = ArrayList()
-        var info = heap[endNodeId]
-        while (info!!.relationship != null) {
-            ids.add(info.relationship!!)
-            info = heap[info.relationship!!.startNodeId]
+        val ids = mutableListOf<Relationship>()
+        var info = info(endNodeId)
+        while (isNotStartNode(info)) {
+            val relationshipToPrevious = info.relationship!!
+            ids.add(relationshipToPrevious)
+            info = info(relationshipToPrevious.startNodeId)
         }
         return ids
     }
+
+    fun isSettled(nodeId: Long): Boolean = heap[nodeId]?.settled ?: false
+
+    fun distance(nodeId: Long): Long = info(nodeId).distance
+
+    private fun isNotStartNode(info: Info) = info.relationship != null
+
+    private fun info(nodeId: Long): Info = heap[nodeId]!!
 }

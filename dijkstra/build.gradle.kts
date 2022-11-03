@@ -1,5 +1,4 @@
 import Versions.javaVersion
-import java.nio.file.Files.isDirectory
 
 plugins {
     id(Plugins.kotlin) version Versions.koltin
@@ -10,8 +9,14 @@ plugins {
 
 kotlin { jvmToolchain { languageVersion.set(javaVersion) } }
 repositories { mavenCentral() }
-dependencies {}
 
-
-
+tasks.jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    configurations.implementation.get().isCanBeResolved = true
+    val kotlinRuntime = configurations.implementation.get()
+        .filter { it.name.endsWith("jar") }
+        .filter { it.name.contains("kotlin") }
+        .map{zipTree(it)}
+    from(kotlinRuntime)
+}
 

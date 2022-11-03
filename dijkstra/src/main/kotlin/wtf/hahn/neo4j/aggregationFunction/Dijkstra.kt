@@ -1,6 +1,6 @@
 package wtf.hahn.neo4j.aggregationFunction
 
-import DikstraHeap
+import wtf.hahn.neo4j.model.DijkstraHeap
 import org.neo4j.graphdb.*
 import org.neo4j.procedure.Context
 import org.neo4j.procedure.Name
@@ -9,7 +9,7 @@ import wtf.hahn.neo4j.model.ShortestPropertyPath
 import wtf.hahn.neo4j.util.ReverseIterator
 
 
-class DijkstraAlgorithm {
+class Dijkstra {
 
     @Context lateinit var graphDatabaseService: GraphDatabaseService
 
@@ -21,26 +21,21 @@ class DijkstraAlgorithm {
         @Name("propertyKey") propertyKey: String,
     ): Path {
         val relationshipType = RelationshipType.withName(type)
-        val heap = DikstraHeap()
-        var path: ShortestPropertyPath
-        graphDatabaseService!!.beginTx().use { transaction ->
-            heap.setNodeDistance(startNode.id, 0L, null)
+        val heap = DijkstraHeap()
+        graphDatabaseService.beginTx().use { transaction: Transaction ->
+            heap.setNodeDistance(startNode.id, 0L)
             while (heap.getClosestNotSettled() != null && !heap.isSettled(endNode.id)) {
                 val toSettle = transaction.getNodeById(heap.getClosestNotSettled()!!)
-                toSettle.getRelationships(Direction.OUTGOING, relationshipType)
-                    .forEach { relationship: Relationship ->
-                        heap.setNodeDistance(
-                            relationship.endNode.id,
-                            relationship.getProperty(propertyKey) as Long +
-                                    heap.getCurrentDistance(toSettle.id), relationship)
-                    }
-
+                for (relationship: Relationship in toSettle.getRelationships(Direction.OUTGOING, relationshipType)) {
+                    heap.setNodeDistance(
+                        relationship.endNode.id,
+                        relationship.getProperty(propertyKey) as Long + heap.distance(toSettle.id),
+                        relationship
+                    )
+                }
                 heap.setSettled(toSettle.id)
             }
-            val relationships =
-                ReverseIterator(heap.getPath(endNode.id))
-            path = ShortestPropertyPath(relationships, propertyKey)
-            return path
+            return ShortestPropertyPath(ReverseIterator(heap.getPath(endNode.id)), propertyKey)
         }
     }
 
